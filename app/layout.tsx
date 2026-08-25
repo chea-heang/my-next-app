@@ -5,8 +5,8 @@ import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "My Next App",
-  description: "Modern web app with Next.js & Tailwind CSS",
+  title: "Spider-Sna | ទីតាំងរោងកុននៅកម្ពុជា",
+  description: "Spider-Sna: ស្វែងរកទីតាំងរោងភាពយន្តនៅកម្ពុជា និងកក់សំបុត្រភាពយន្ត Spider-Man",
 };
 
 export default function RootLayout({
