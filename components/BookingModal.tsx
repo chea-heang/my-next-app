@@ -515,7 +515,7 @@ export default function BookingModal({
                   <span>🦅 អេស៊ីលីដា ACLEDA BANK</span>
                 </div>
               )}
-
+ 
               {/* KHQR Red Tag */}
               <div className="bg-[#e31b23] text-white py-1.5 px-4 text-center font-black tracking-widest text-sm flex items-center justify-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-white" />
