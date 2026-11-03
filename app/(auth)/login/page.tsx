@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { mockCurrentUser } from "@/lib/data";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login, quickLogin } = useAuth();
   const [email, setEmail] = useState("veasna.chan@example.com");
   const [password, setPassword] = useState("password123");
   const [isLoading, setIsLoading] = useState(false);
@@ -17,45 +18,26 @@ export default function LoginPage() {
     setIsLoading(true);
     setError("");
 
-    try {
-      const res = await fetch("/api/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "login", email, password }),
-      });
-      const data = await res.json();
+    const res = await login(email, password);
+    setIsLoading(false);
 
-      if (data.success && data.user) {
-        // Save demo session
-        localStorage.setItem("user_session", JSON.stringify(data.user));
-        window.location.href = "/dashboard";
-      } else {
-        setError(data.message || "Email ឬ Password មិនត្រឹមត្រូវ!");
-      }
-    } catch (err) {
-      // Fallback in case of server fetch issue
-      const fallbackUser = {
-        ...mockCurrentUser,
-        name: email ? email.split("@")[0] : mockCurrentUser.name,
-        email: email || mockCurrentUser.email,
-      };
-      localStorage.setItem("user_session", JSON.stringify(fallbackUser));
-      window.location.href = "/dashboard";
-    } finally {
-      setIsLoading(false);
+    if (res.success) {
+      router.push("/dashboard");
+    } else {
+      setError(res.message || "Email ឬ Password មិនត្រឹមត្រូវ!");
     }
   };
 
   const handleQuickLogin = () => {
-    localStorage.setItem("user_session", JSON.stringify(mockCurrentUser));
-    window.location.href = "/dashboard";
+    quickLogin();
+    router.push("/dashboard");
   };
 
   return (
     <div className="flex min-h-[85vh] items-center justify-center px-4 py-12">
       <div className="w-full max-w-md space-y-8 rounded-3xl border border-gray-200/80 bg-white/90 p-8 shadow-2xl backdrop-blur-xl dark:border-gray-800 dark:bg-gray-900/90 sm:p-10">
         <div className="text-center space-y-2">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-red-600 to-rose-500 text-2xl text-white shadow-lg shadow-red-500/30">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-tr from-red-600 to-rose-500 text-2xl text-white shadow-lg shadow-red-500/30">
             🕷️
           </div>
           <h2 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
@@ -109,7 +91,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full cursor-pointer rounded-xl bg-gradient-to-r from-red-600 to-rose-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-600/30 transition hover:opacity-95 active:scale-[0.99] disabled:opacity-50"
+            className="w-full cursor-pointer rounded-xl bg-linear-to-r from-red-600 to-rose-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-600/30 transition hover:opacity-95 active:scale-[0.99] disabled:opacity-50"
           >
             {isLoading ? "កំពុងចូល..." : "ចូលគណនី (Sign In)"}
           </button>
@@ -145,4 +127,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

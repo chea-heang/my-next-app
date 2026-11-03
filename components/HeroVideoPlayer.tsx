@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface VideoTrailer {
   id: string;
@@ -85,6 +86,7 @@ const trailers: VideoTrailer[] = [
 ];
 
 export default function HeroVideoPlayer() {
+  const { language } = useLanguage();
   const [activeTrailer, setActiveTrailer] = useState<VideoTrailer>(trailers[0]);
   const [playerMode, setPlayerMode] = useState<"youtube" | "html5">("youtube");
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
@@ -118,8 +120,8 @@ export default function HeroVideoPlayer() {
           <div className="flex items-center gap-2.5">
             <span className="flex h-3 w-3 rounded-full bg-red-500 animate-ping" />
             <span className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
-              <span>🎬</span> <strong>កំពុងចាក់៖</strong>{" "}
-              <span className="text-red-400">{activeTrailer.titleKh}</span>
+              <span>🎬</span> <strong>{language === "KH" ? "កំពុងចាក់៖" : "Now Playing:"}</strong>{" "}
+              <span className="text-red-400">{language === "KH" ? activeTrailer.titleKh : activeTrailer.titleEn}</span>
             </span>
           </div>
 
@@ -196,10 +198,10 @@ export default function HeroVideoPlayer() {
         <div className="pt-3.5 pb-1">
           <div className="flex items-center justify-between mb-2.5 px-2">
             <span className="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
-              <span>📽️</span> ជ្រើសរើសវីដេអូ Trailer តាមវគ្គ (Select Movie Trailer):
+              <span>📽️</span> {language === "KH" ? "ជ្រើសរើសវីដេអូ Trailer តាមវគ្គ (Select Movie Trailer):" : "Select Movie Trailer:"}
             </span>
             <span className="text-[11px] font-semibold text-gray-500">
-              គុណភាពច្បាស់ Ultra HD 4K
+              {language === "KH" ? "គុណភាពច្បាស់ Ultra HD 4K" : "Ultra HD 4K Quality"}
             </span>
           </div>
 
@@ -230,7 +232,7 @@ export default function HeroVideoPlayer() {
                     </span>
                   </div>
                   <span className="line-clamp-1 font-bold text-xs">
-                    {t.titleKh.split("(")[0]}
+                    {language === "KH" ? t.titleKh.split("(")[0] : t.titleEn.split(" ").slice(0, 4).join(" ")}
                   </span>
                   <span className="text-[10px] text-gray-400 mt-1 flex justify-between">
                     <span>{t.tag}</span>

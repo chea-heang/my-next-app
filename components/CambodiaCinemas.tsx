@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import BookingModal, { BookingMovieData } from "@/components/BookingModal";
 import { movies } from "@/components/MovieSearchSection";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Cinema {
   id: number;
@@ -117,7 +118,7 @@ const cinemas: Cinema[] = [
     bookingUrl: "https://www.majorcineplex.com.kh",
     status: "កំពុងបញ្ចាំង",
     highlights: "រោងភាពយន្តស្តង់ដារអន្តរជាតិធំជាងគេបង្អស់ក្នុងខេត្តសៀមរាប",
-  },
+  }, 
   {
     id: 7,
     nameKh: "Legend Cinema ព្រះសីហនុ (Prince Mall)",
@@ -126,7 +127,7 @@ const cinemas: Cinema[] = [
     city: "ព្រះសីហនុ",
     locationKh: "ជាន់ទី៤ ផ្សារ Prince Mall, វិថី ២ ធ្នូ, ក្រុងព្រះសីហនុ",
     locationEn: "4th Floor, Prince Mall, 2 Thnou St., Sihanoukville",
-    phone: "081 252 525",
+    phone: "081 252 525",              
     technologies: ["Laser 4K", "VIP Hall", "Dolby Surround 7.1"],
     image: "https://images.unsplash.com/photo-1585647347483-22b66260dfff?auto=format&fit=crop&w=800&q=80",
     mapUrl: "https://maps.google.com/?q=Legend+Cinema+Prince+Mall+Sihanoukville",
@@ -153,6 +154,7 @@ const cinemas: Cinema[] = [
 ];
 
 export default function CambodiaCinemas() {
+  const { language, toggleLanguage } = useLanguage();
   const [selectedCity, setSelectedCity] = useState<string>("ទាំងអស់");
   const [selectedBrand, setSelectedBrand] = useState<string>("ទាំងអស់");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -161,6 +163,13 @@ export default function CambodiaCinemas() {
   const [selectedMovie, setSelectedMovie] = useState<BookingMovieData | null>(
     movies[movies.length - 1] // default to Spider-Man No Way Home
   );
+
+  const cities = [
+    { kh: "ទាំងអស់", en: "All" },
+    { kh: "ភ្នំពេញ", en: "Phnom Penh" },
+    { kh: "សៀមរាប", en: "Siem Reap" },
+    { kh: "ព្រះសីហនុ", en: "Sihanoukville" },
+  ];
 
   const filteredCinemas = useMemo(() => {
     return cinemas.filter((cinema) => {
@@ -188,17 +197,35 @@ export default function CambodiaCinemas() {
 
   return (
     <section id="cinemas" className="relative py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      {/* Language Toggle */}
+      <div className="flex justify-end mb-4">
+        <button
+          id="cinema-language-toggle"
+          onClick={toggleLanguage}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all duration-200 shadow-sm
+            bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700
+            text-gray-700 dark:text-gray-200 hover:border-red-500 hover:text-red-600 dark:hover:text-red-400"
+        >
+          <span className={language === "KH" ? "text-red-600 dark:text-red-400" : "text-gray-400"}>
+            ខ្មែរ
+          </span>
+          <span className="text-gray-300 dark:text-gray-600">|</span>
+          <span className={language === "EN" ? "text-red-600 dark:text-red-400" : "text-gray-400"}>
+            EN
+          </span>
+        </button>
+      </div>
       {/* Header section */}
       <div className="text-center max-w-3xl mx-auto space-y-4 mb-10">
         <div className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-red-500 dark:text-red-400">
           <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" />
-          📍 រោងភាពយន្តនៅកម្ពុជា • CAMBODIA CINEMA LOCATOR
+          {language === "KH" ? "📍 រោងភាពយន្តនៅកម្ពុជា • CAMBODIA CINEMA LOCATOR" : "📍 Cambodia Cinemas • LOCATOR"}
         </div>
         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
-          ទីតាំងរោងកុនមើល <span className="bg-gradient-to-r from-red-600 via-rose-500 to-indigo-600 bg-clip-text text-transparent">Spider-Man</span> នៅខ្មែរ
+          {language === "KH" ? "ទីតាំងរោងភាពយន្តនៅកម្ពុជា" : "Cinemas in Cambodia"}
         </h2>
         <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg">
-          ស្វែងរកសាខារោងភាពយន្ត Major Cineplex, Legend Cinema និង Prime Cineplex ដែលនៅជិតលោកអ្នកបំផុត ជាមួយនឹងបច្ចេកវិទ្យា IMAX, 4DX & ScreenX។
+          {language === "KH" ? "ស្វែងរកសាខារោងភាពយន្ត Major Cineplex, Legend Cinema និង Prime Cineplex ដែលនៅជិតលោកអ្នកបំផុត ជាមួយនឹងបច្ចេកវិទ្យា IMAX, 4DX & ScreenX។" : "Find the nearest branches of Major Cineplex, Legend Cinema, and Prime Cineplex with IMAX, 4DX & ScreenX technologies."}
         </p>
       </div>
 
@@ -208,19 +235,19 @@ export default function CambodiaCinemas() {
           {/* City Filter Pills */}
           <div className="flex flex-wrap gap-2 w-full md:w-auto">
             <span className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 self-center mr-1">
-              ទីក្រុង:
+              {language === "KH" ? "ទីក្រុង:" : "City:"}
             </span>
-            {["ទាំងអស់", "ភ្នំពេញ", "សៀមរាប", "ព្រះសីហនុ"].map((city) => (
+            {cities.map((cityObj) => (
               <button
-                key={city}
-                onClick={() => setSelectedCity(city)}
+                key={cityObj.kh}
+                onClick={() => setSelectedCity(cityObj.kh)}
                 className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition duration-200 ${
-                  selectedCity === city
+                  selectedCity === cityObj.kh
                     ? "bg-red-600 text-white shadow-lg shadow-red-600/30"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                 }`}
               >
-                {city}
+                {language === "KH" ? cityObj.kh : cityObj.en}
               </button>
             ))}
           </div>
@@ -229,7 +256,7 @@ export default function CambodiaCinemas() {
           <div className="relative w-full md:w-80">
             <input
               type="text"
-              placeholder="ស្វែងរកឈ្មោះរោងកុន ឬទីតាំង (ឧ. Aeon, Eden, IMAX)..."
+              placeholder={language === "KH" ? "ស្វែងរកឈ្មោះរោងកុន ឬទីតាំង (ឧ. Aeon, Eden, IMAX)..." : "Search cinema or location (e.g. Aeon, IMAX)..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
@@ -253,7 +280,7 @@ export default function CambodiaCinemas() {
         {/* Brand Filter */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800/80">
           <span className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mr-1">
-            ម៉ាករោងកុន:
+            {language === "KH" ? "ម៉ាករោងកុន:" : "Cinema Brand:"}
           </span>
           {["ទាំងអស់", "Major", "Legend", "Prime"].map((brand) => (
             <button
@@ -265,11 +292,11 @@ export default function CambodiaCinemas() {
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
               }`}
             >
-              {brand === "ទាំងអស់" ? "គ្រប់ម៉ាកទាំងអស់" : `${brand} Cinema`}
+              {brand === "ទាំងអស់" ? (language === "KH" ? "គ្រប់ម៉ាកទាំងអស់" : "All Brands") : `${brand} Cinema`}
             </button>
           ))}
           <span className="ml-auto text-xs font-medium text-gray-500 dark:text-gray-400">
-            បង្ហាញ {filteredCinemas.length} ទីតាំង
+            {language === "KH" ? "បង្ហាញ" : "Showing"} {filteredCinemas.length} {language === "KH" ? "ទីតាំង" : "locations"}
           </span>
         </div>
       </div>
@@ -318,10 +345,10 @@ export default function CambodiaCinemas() {
               {/* Title on Image */}
               <div className="absolute bottom-3 left-4 right-4">
                 <h3 className="text-xl font-black text-white drop-shadow-md">
-                  {cinema.nameKh}
+                  {language === "KH" ? cinema.nameKh : cinema.nameEn}
                 </h3>
                 <p className="text-xs text-gray-300 font-medium">
-                  {cinema.nameEn}
+                  {language === "KH" ? cinema.nameEn : cinema.nameKh}
                 </p>
               </div>
             </div>
@@ -331,7 +358,7 @@ export default function CambodiaCinemas() {
               <div className="space-y-3">
                 {/* Highlights */}
                 <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-900/50 rounded-xl p-3 text-xs text-red-700 dark:text-red-300 font-medium">
-                  ⭐ <strong className="font-bold">ចំណុចពិសេស:</strong> {cinema.highlights}
+                  ⭐ <strong className="font-bold">{language === "KH" ? "ចំណុចពិសេស:" : "Highlights:"}</strong> {cinema.highlights}
                 </div>
 
                 {/* Tech Badges */}
@@ -350,12 +377,12 @@ export default function CambodiaCinemas() {
                 <div className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-800">
                   <p className="flex items-start gap-2">
                     <span className="text-base leading-none">🏢</span>
-                    <span>{cinema.locationKh}</span>
+                    <span>{language === "KH" ? cinema.locationKh : cinema.locationEn}</span>
                   </p>
                   <p className="flex items-center gap-2">
                     <span className="text-base leading-none">📞</span>
                     <span className="font-semibold text-gray-800 dark:text-gray-200">
-                      ទំនាក់ទំនង: {cinema.phone}
+                      {language === "KH" ? "ទំនាក់ទំនង:" : "Contact:"} {cinema.phone}
                     </span>
                   </p>
                 </div>
@@ -388,7 +415,7 @@ export default function CambodiaCinemas() {
                       d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                     />
                   </svg>
-                  មើលលើ Maps
+                  {language === "KH" ? "មើលលើ Maps" : "View on Maps"}
                 </a>
                 <button
                   type="button"
@@ -408,7 +435,7 @@ export default function CambodiaCinemas() {
                       d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
                     />
                   </svg>
-                  កក់សំបុត្រឥឡូវនេះ
+                  {language === "KH" ? "កក់សំបុត្រឥឡូវនេះ" : "Book Ticket"}
                 </button>
               </div>
             </div>

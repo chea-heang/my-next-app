@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface BookingMovieData {
   id: number;
@@ -52,6 +53,7 @@ export default function BookingModal({
   movie,
   defaultCinema,
 }: BookingModalProps) {
+  const { user, openLoginModal } = useAuth();
   const [step, setStep] = useState<"details" | "payment" | "success">("details");
   const [selectedCinema, setSelectedCinema] = useState<string>(
     defaultCinema || cinemaOptions[0]
@@ -62,6 +64,7 @@ export default function BookingModal({
   const [selectedSeats, setSelectedSeats] = useState<string[]>(["B3", "B4"]);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [usePointsDiscount, setUsePointsDiscount] = useState(false);
 
   // Payment states
   const [selectedBank, setSelectedBank] = useState<"ABA" | "ACLEDA">("ABA");
@@ -72,9 +75,23 @@ export default function BookingModal({
 
   useEffect(() => {
     if (defaultCinema) {
-      setSelectedCinema(defaultCinema);
+      queueMicrotask(() => setSelectedCinema(defaultCinema));
     }
   }, [defaultCinema]);
+
+  // Auto-fill customer details from logged in user
+  useEffect(() => {
+    if (user) {
+      queueMicrotask(() => {
+        if (user.name) {
+          setCustomerName(user.name);
+        }
+        if (user.phone) {
+          setCustomerPhone(user.phone);
+        }
+      });
+    }
+  }, [user]);
 
   if (!isOpen || !movie) return null;
 
@@ -95,9 +112,13 @@ export default function BookingModal({
   };
 
   const seatPrice = movie.price + selectedFormat.extra;
-  const totalPrice = seatPrice * selectedSeats.length;
+  const rawTotalPrice = seatPrice * selectedSeats.length;
+  const discountAmount = usePointsDiscount ? Math.min(1.0, rawTotalPrice) : 0;
+  const totalPrice = Math.max(0, rawTotalPrice - discountAmount);
   const totalPriceKHR = Math.round(totalPrice * 4100).toLocaleString();
 
+
+  
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedSeats.length === 0) {
@@ -118,6 +139,30 @@ export default function BookingModal({
       const ref = "SPIDER-" + Math.floor(100000 + Math.random() * 900000);
       setBookingRef(ref);
       setStep("success");
+
+      // Save ticket to API
+      try {
+        fetch("/api/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            movieTitle: movie.title,
+            cinemaName: selectedCinema,
+            cinemaBrand: selectedCinema.includes("Major")
+              ? "Major"
+              : selectedCinema.includes("Legend")
+              ? "Legend"
+              : "Prime",
+            date: selectedDate,
+            time: selectedTime,
+            hall: selectedFormat.name,
+            seats: selectedSeats,
+            format: selectedFormat.name,
+            totalPriceUSD: totalPrice,
+            totalPriceKHR,
+          }),
+        }).catch(() => {});
+      } catch {}
     }, 1200);
   };
 
@@ -382,32 +427,95 @@ export default function BookingModal({
               </div>
             </div>
 
-            {/* 5. Customer Contact */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <div>
-                <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
-                  ឈ្មោះអ្នកកក់:
-                </label>
-                <input
-                  type="text"
-                  placeholder="ឈ្មោះរបស់អ្នក"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
-                  លេខទូរស័ព្ទ (Telegram ទទួលសំបុត្រ): <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="ឧ. 012 345 678"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500"
-                />
+            {/* 5. Customer Contact & Quick Login */}
+            <div className="space-y-3 pt-1">
+              {!user ? (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 rounded-2xl border border-red-500/20 bg-linear-to-r from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/20">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-600 text-white text-sm shadow-sm">
+                      🔑
+                    </span>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900 dark:text-white">
+                        មានគណនីរួចហើយមែនទេ?
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                        ចូលគណនីដើម្បីបំពេញទិន្នន័យស្វ័យប្រវត្តិ & ទទួលបានពិន្ទុ VIP
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openLoginModal("login")}
+                    className="cursor-pointer self-start sm:self-auto rounded-xl bg-red-600 hover:bg-red-700 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition active:scale-95 whitespace-nowrap"
+                  >
+                    ចូលគណនី (Login)
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-2xl border border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-950/30">
+                  <div className="flex items-center gap-2.5">
+                    <img
+                      src={
+                        user.avatar ||
+                        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80"
+                      }
+                      alt={user.name}
+                      className="h-8 w-8 rounded-full object-cover ring-2 ring-emerald-500"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                        <span>{user.name}</span>
+                        <span className="rounded-full bg-emerald-600/10 px-2 py-0.5 text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400">
+                          ✓ បានចូលគណនី
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                        ⭐ {user.memberPoints || 350} ពិន្ទុ VIP
+                      </p>
+                    </div>
+                  </div>
+
+                  {user.memberPoints && user.memberPoints >= 100 && (
+                    <label className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={usePointsDiscount}
+                        onChange={(e) => setUsePointsDiscount(e.target.checked)}
+                        className="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
+                      />
+                      <span>ប្រើ 100 ពិន្ទុ (ចុះតម្លៃ $1)</span>
+                    </label>
+                  )}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
+                    ឈ្មោះអ្នកកក់:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="ឈ្មោះរបស់អ្នក"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
+                    លេខទូរស័ព្ទ (Telegram ទទួលសំបុត្រ): <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="ឧ. 012 345 678"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
               </div>
             </div>
 
@@ -420,6 +528,11 @@ export default function BookingModal({
                   </span>
                   <p className="text-sm font-bold text-gray-900 dark:text-white">
                     តម្លៃ: ${seatPrice.toFixed(2)}/កៅអី
+                    {discountAmount > 0 && (
+                      <span className="ml-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                        (-${discountAmount.toFixed(2)} VIP)
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="text-right">
@@ -437,7 +550,7 @@ export default function BookingModal({
 
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-base shadow-xl shadow-red-600/30 transition hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-2xl bg-linear-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-base shadow-xl shadow-red-600/30 transition hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>💳 បន្តទៅការបង់ប្រាក់តាម QR (${totalPrice.toFixed(2)})</span>
                 <span>→</span>
@@ -548,7 +661,7 @@ export default function BookingModal({
                   </div>
                 </div>
 
-                <p className="text-[11px] text-gray-500 text-center mt-3 font-medium">
+                <p className="text-[11px] text-gray-50n0 text-center mt-3 font-medium">
                   ស្កេនទូទាត់ ជាមួយគ្រប់កម្មវិធីធនាគារ (Bakong, ABA, ACLEDA, Wing, Canadia...)
                 </p>
               </div>
@@ -701,7 +814,7 @@ export default function BookingModal({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">កៅអីអង្គុយ:</span>
+                <span className="text-gray-500 dark:text-gray-400">កៅអីអង្គុយ:</span>  
                 <span className="font-bold text-red-600 dark:text-red-400">
                   {selectedSeats.join(", ")} ({selectedSeats.length} កៅអី)
                 </span>
@@ -716,7 +829,7 @@ export default function BookingModal({
                 <span className="font-bold text-gray-900 dark:text-white">
                   ទឹកប្រាក់បានទូទាត់:
                 </span>
-                <span className="font-black text-emerald-600 dark:text-emerald-400">
+                <span className="   font-black text-emerald-600 dark:text-emerald-400">
                   ${totalPrice.toFixed(2)} ({totalPriceKHR} ៛)
                 </span>
               </div>

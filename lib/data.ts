@@ -62,7 +62,7 @@ ScreenX ប្រើប្រាស់អេក្រង់បញ្ចាំង
 
 ### ៣. 4DX Experience
 សម្រាប់អ្នកចូលចិត្តបទពិសោធន៍រំញោចអារម្មណ៍ កៅអីចលនា 4DX អាចបត់បែន ញ័រ ព្រមទាំងមានបែបផែនខ្យល់ ទឹក ផ្សែង និងក្លិន ស្របតាមចលនាក្នុងរឿង។`,
-    coverImage: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1200&q=80",
+    coverImage: "/cinema-imax-cover.jpg",
     category: "បច្ចេកវិទ្យារោងកុន",
     author: {
       name: "សុខ សុភ័ក្ត្រ (Sopheak Sok)",
@@ -86,7 +86,7 @@ ScreenX ប្រើប្រាស់អេក្រង់បញ្ចាំង
 - **Animation Style:** ការរួមបញ្ចូលគ្នារវាង 2D និង 3D Animation បែប Comic Book ដ៏រស់រវើក
 - **Multiverse Characters:** ការបង្ហាញខ្លួនរបស់ Spider-Heroes ថ្មីៗរាប់សិបនាក់
 - **Soundtrack:** បទភ្លេង Soundtrack ថ្មីៗពីសិល្បករកំពូលៗ`,
-    coverImage: "https://images.unsplash.com/photo-1574267432553-4b4628081c31?auto=format&fit=crop&w=1200&q=80",
+    coverImage: "/spiderman-multiverse-cover.jpg",
     category: "ព័ត៌មានភាពយន្ត",
     author: {
       name: "រិទ្ធី ដារ៉ា (Dara Rithy)",

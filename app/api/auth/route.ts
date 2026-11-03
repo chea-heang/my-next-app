@@ -6,7 +6,7 @@ interface DemoUser {
   id: string;
   name: string;
   email: string;
-  password?: string;
+  password?: string; 
   phone?: string;
   avatar?: string;
   role?: string;

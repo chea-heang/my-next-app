@@ -38,7 +38,7 @@ export default function BlogListPage() {
         {/* Header */}
         <div className="text-center space-y-4 max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-50 px-4 py-1 text-xs font-black uppercase tracking-widest text-red-600 dark:bg-red-500/10 dark:text-red-400">
-            📰 SPIDER-SNA CINEMA BLOG
+            📰 VEASNA CINEMA BLOG
           </div>
           <h1 className="text-3xl font-black text-gray-900 dark:text-white sm:text-5xl">
             ព័ត៌មានភាពយន្ត & បច្ចេកវិទ្យារោងកុន

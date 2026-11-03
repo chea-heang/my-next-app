@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { mockCurrentUser } from "@/lib/data";
-import { User } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function DashboardLayout({
   children,
@@ -13,19 +12,11 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<User>(mockCurrentUser);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("user_session");
-    if (saved) {
-      try {
-        setUser(JSON.parse(saved));
-      } catch (e) {}
-    }
-  }, []);
+  const { user, logout } = useAuth();
+  const currentUser = user || mockCurrentUser;
 
   const handleLogout = () => {
-    localStorage.removeItem("user_session");
+    logout();
     router.push("/login");
   };
 
@@ -46,19 +37,19 @@ export default function DashboardLayout({
             <div className="rounded-3xl border border-gray-200/80 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
               <div className="flex items-center gap-4">
                 <img
-                  src={user.avatar || mockCurrentUser.avatar}
-                  alt={user.name}
+                  src={currentUser.avatar || mockCurrentUser.avatar}
+                  alt={currentUser.name}
                   className="h-14 w-14 rounded-2xl object-cover ring-2 ring-red-500/30"
                 />
                 <div className="min-w-0">
                   <h3 className="truncate font-bold text-gray-900 dark:text-white">
-                    {user.name}
+                    {currentUser.name}
                   </h3>
                   <p className="truncate text-xs text-gray-500 dark:text-gray-400">
-                    {user.email}
+                    {currentUser.email}
                   </p>
                   <span className="mt-1.5 inline-flex items-center rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-bold text-red-600 dark:text-red-400">
-                    ⭐ {user.memberPoints || 350} ពិន្ទុ
+                    ⭐ {currentUser.memberPoints || 350} ពិន្ទុ
                   </span>
                 </div>
               </div>
@@ -86,8 +77,9 @@ export default function DashboardLayout({
                 })}
 
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                  className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 cursor-pointer"
                 >
                   <span className="text-lg">🚪</span>
                   <span>ចាកចេញ (Log Out)</span>

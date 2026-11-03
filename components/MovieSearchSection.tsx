@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import BookingModal, { BookingMovieData } from "@/components/BookingModal";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export interface Movie {
   id: number;
@@ -138,16 +139,17 @@ const khmerNumeralsMap: Record<string, string> = {
 };
 
 const filterTabs = [
-  { label: "ទាំងអស់ (All)", value: "all" },
-  { label: "វគ្គ ១ ($3.50)", value: "1" },
-  { label: "វគ្គ ២ ($3.50)", value: "2" },
-  { label: "វគ្គ ៣ ($4.00)", value: "3" },
-  { label: "វគ្គ ៤ ($4.00)", value: "4" },
-  { label: "វគ្គ ៥ ($4.50)", value: "5" },
-  { label: "វគ្គ ៦ ($5.00)", value: "6" },
+  { labelKh: "ទាំងអស់ (All)", labelEn: "All", value: "all" },
+  { labelKh: "វគ្គ ១ ($3.50)", labelEn: "Part 1 ($3.50)", value: "1" },
+  { labelKh: "វគ្គ ២ ($3.50)", labelEn: "Part 2 ($3.50)", value: "2" },
+  { labelKh: "វគ្គ ៣ ($4.00)", labelEn: "Part 3 ($4.00)", value: "3" },
+  { labelKh: "វគ្គ ៤ ($4.00)", labelEn: "Part 4 ($4.00)", value: "4" },
+  { labelKh: "វគ្គ ៥ ($4.50)", labelEn: "Part 5 ($4.50)", value: "5" },
+  { labelKh: "វគ្គ ៦ ($5.00)", labelEn: "Part 6 ($5.00)", value: "6" },
 ];
 
 export default function MovieSearchSection() {
+  const { language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPart, setSelectedPart] = useState("all");
   const [selectedMovieForBooking, setSelectedMovieForBooking] =
@@ -204,13 +206,14 @@ export default function MovieSearchSection() {
         {/* Header Title */}
         <div className="text-center space-y-4 mb-10">
           <span className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-50 px-4 py-1.5 text-xs font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400">
-            🎬 តម្លៃសំបុត្រ និងកាលវិភាគបញ្ចាំង • SPIDER-MAN SAGA
+            🎬 {language === "KH" ? "តម្លៃសំបុត្រ និងកាលវិភាគបញ្ចាំង • SPIDER-MAN SAGA" : "TICKET PRICES & SHOWTIMES • SPIDER-MAN SAGA"}
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-gray-900 dark:text-white">
-            តម្លៃសំបុត្រ <span className="bg-gradient-to-r from-red-600 via-rose-500 to-indigo-600 bg-clip-text text-transparent">Spider-Man វគ្គ ១ ដល់ ៦</span>
+            {language === "KH" ? "តម្លៃសំបុត្រ " : "Ticket Prices for "}
+            <span className="bg-gradient-to-r from-red-600 via-rose-500 to-indigo-600 bg-clip-text text-transparent">Spider-Man {language === "KH" ? "វគ្គ ១ ដល់ ៦" : "Parts 1 to 6"}</span>
           </h2>
           <p className="mx-auto max-w-2xl text-base text-gray-600 dark:text-gray-400">
-            ជ្រើសរើសវគ្គដែលលោកអ្នកចូលចិត្ត ដើម្បីកក់សំបុត្រទស្សនានៅរោងភាពយន្តល្បីៗនៅកម្ពុជា ជាមួយតម្លៃចាប់ពី <strong>$3.50</strong> ឡើងទៅ។
+            {language === "KH" ? "ជ្រើសរើសវគ្គដែលលោកអ្នកចូលចិត្ត ដើម្បីកក់សំបុត្រទស្សនានៅរោងភាពយន្តល្បីៗនៅកម្ពុជា ជាមួយតម្លៃចាប់ពី" : "Choose your favorite part to book tickets at popular cinemas in Cambodia, with prices starting from"} <strong>$3.50</strong> {language === "KH" ? "ឡើងទៅ។" : "and up."}
           </p>
         </div>
 
@@ -225,7 +228,7 @@ export default function MovieSearchSection() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ស្វែងរកតាមវគ្គ តម្លៃ ឬឈ្មោះបិសាច (ឧ. វគ្គ ១, $3.50, Venom, 2021)..."
+              placeholder={language === "KH" ? "ស្វែងរកតាមវគ្គ តម្លៃ ឬឈ្មោះបិសាច (ឧ. វគ្គ ១, $3.50, Venom, 2021)..." : "Search by part, price, or villain (e.g. Part 1, $3.50, Venom)..."}
               className="w-full rounded-2xl border border-gray-200 bg-white/90 py-3.5 pl-12 pr-12 text-sm sm:text-base text-gray-900 shadow-sm outline-none transition-all placeholder:text-gray-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 dark:border-gray-800 dark:bg-gray-900/90 dark:text-white dark:focus:border-red-500"
             />
             {searchQuery && (
@@ -252,7 +255,7 @@ export default function MovieSearchSection() {
                       : "bg-white text-gray-600 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800"
                   }`}
                 >
-                  {tab.label}
+                  {language === "KH" ? tab.labelKh : tab.labelEn}
                 </button>
               );
             })}
@@ -261,7 +264,7 @@ export default function MovieSearchSection() {
           {/* Results Summary */}
           <div className="flex items-center justify-between px-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
             <span>
-              រកឃើញ <strong className="text-red-500">{filteredMovies.length}</strong> ខ្សែភាពយន្ត
+              {language === "KH" ? "រកឃើញ" : "Found"} <strong className="text-red-500">{filteredMovies.length}</strong> {language === "KH" ? "ខ្សែភាពយន្ត" : "movies"}
             </span>
             {(searchQuery || selectedPart !== "all") && (
               <button
@@ -271,7 +274,7 @@ export default function MovieSearchSection() {
                 }}
                 className="text-red-600 hover:underline cursor-pointer dark:text-red-400"
               >
-                សម្អាតការស្វែងរក (Reset)
+                {language === "KH" ? "សម្អាតការស្វែងរក (Reset)" : "Reset Search"}
               </button>
             )}
           </div>
@@ -305,7 +308,7 @@ export default function MovieSearchSection() {
                   <div className="absolute top-3 right-3">
                     <div className="rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 px-3.5 py-1.5 text-center shadow-lg shadow-red-600/40">
                       <span className="text-[10px] uppercase font-bold text-red-100 block">
-                        តម្លៃសំបុត្រ
+                        {language === "KH" ? "តម្លៃសំបុត្រ" : "Price"}
                       </span>
                       <span className="text-sm font-black text-white">
                         ${movie.price.toFixed(2)}
@@ -334,7 +337,7 @@ export default function MovieSearchSection() {
                     {/* Villain & Formats */}
                     <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
                       <p>
-                        🦹 <strong className="text-gray-700 dark:text-gray-300">សត្រូវ:</strong> {movie.villain}
+                        🦹 <strong className="text-gray-700 dark:text-gray-300">{language === "KH" ? "សត្រូវ:" : "Villain:"}</strong> {movie.villain}
                       </p>
                     </div>
 
@@ -354,12 +357,12 @@ export default function MovieSearchSection() {
                   <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
                     <div>
                       <span className="text-[11px] text-gray-400 block">
-                        តម្លៃចាប់ពី
+                        {language === "KH" ? "តម្លៃចាប់ពី" : "Starting at"}
                       </span>
                       <div className="text-lg font-black text-red-600 dark:text-red-400">
                         ${movie.price.toFixed(2)}
                         <span className="text-xs font-normal text-gray-500 ml-1">
-                          /កៅអី
+                          {language === "KH" ? "/កៅអី" : "/seat"}
                         </span>
                       </div>
                     </div>
@@ -368,7 +371,7 @@ export default function MovieSearchSection() {
                       onClick={() => openBooking(movie)}
                       className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-red-600/30 transition hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                      🎟️ កក់សំបុត្រឥឡូវនេះ
+                      🎟️ {language === "KH" ? "កក់សំបុត្រឥឡូវនេះ" : "Book Ticket"}
                     </button>
                   </div>
                 </div>
@@ -379,10 +382,10 @@ export default function MovieSearchSection() {
           <div className="mx-auto max-w-md rounded-3xl border border-dashed border-gray-300 p-12 text-center dark:border-gray-800">
             <span className="text-5xl">🕸️</span>
             <h3 className="mt-4 text-xl font-bold text-gray-900 dark:text-white">
-              រកមិនឃើញវគ្គដែលអ្នកចង់ស្វែងរកទេ
+              {language === "KH" ? "រកមិនឃើញវគ្គដែលអ្នកចង់ស្វែងរកទេ" : "Could not find what you were looking for"}
             </h3>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              សូមសាកល្បងវាយពាក្យគន្លឹះផ្សេង ដូចជា &quot;វគ្គ ១&quot;, &quot;$3.50&quot; ឬ &quot;No Way Home&quot;។
+              {language === "KH" ? "សូមសាកល្បងវាយពាក្យគន្លឹះផ្សេង ដូចជា \"វគ្គ ១\", \"$3.50\" ឬ \"No Way Home\"។" : "Please try searching with different keywords like \"Part 1\", \"$3.50\" or \"No Way Home\"."}
             </p>
             <button
               onClick={() => {
@@ -391,7 +394,7 @@ export default function MovieSearchSection() {
               }}
               className="mt-6 rounded-xl bg-red-600 px-6 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-red-500 cursor-pointer"
             >
-              បង្ហាញទាំងអស់ឡើងវិញ
+              {language === "KH" ? "បង្ហាញទាំងអស់ឡើងវិញ" : "Show All Movies"}
             </button>
           </div>
         )}
