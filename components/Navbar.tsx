@@ -56,6 +56,15 @@ export default function Navbar() {
           <Link href="/blog" className="transition hover:text-red-500">
             {lang === "KH" ? "ព័ត៌មាន (Blog)" : "Blog"}
           </Link>
+          {user?.role === "admin" && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-1.5 rounded-xl bg-purple-500/10 px-3 py-1.5 text-xs font-black text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 ring-1 ring-purple-500/30 hover:bg-purple-500/20 transition"
+            >
+              <span>👑</span>
+              <span>{lang === "KH" ? "ផ្ទាំង Admin" : "Admin Portal"}</span>
+            </Link>
+          )}
         </nav>
 
         {/* Actions (Language + Theme + Auth + CTA) */}
@@ -92,7 +101,7 @@ export default function Navbar() {
 
               {/* User Dropdown Menu */}
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl dark:border-gray-800 dark:bg-gray-900 z-50 animate-fadeIn">
+                <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl dark:border-gray-800 dark:bg-gray-900 z-50 animate-fade-in">
                   <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
                     <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
                       {user.name}
@@ -130,6 +139,17 @@ export default function Navbar() {
                       <span>👤</span>
                       <span>{lang === "KH" ? "គណនីផ្ទាល់ខ្លួន" : "Profile"}</span>
                     </Link>
+
+                    {user.role === "admin" && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950/40 transition"
+                      >
+                        <span>👑</span>
+                        <span>{lang === "KH" ? "ផ្ទាំងគ្រប់គ្រង Admin" : "Admin Portal"}</span>
+                      </Link>
+                    )}
                   </div>
 
                   <div className="border-t border-gray-100 pt-1 dark:border-gray-800">

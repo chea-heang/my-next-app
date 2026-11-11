@@ -27,30 +27,6 @@ export default function Home() {
               : "📍 Cambodia Cinemas • THEATER LOCATOR"}
           </div>
 
-          <h1 className="mx-auto max-w-4xl text-4xl font-black tracking-tight text-gray-900 dark:text-white sm:text-6xl lg:text-7xl">
-            {language === "KH" ? (
-              <span className="inline-flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-                <span>វាសនាស្រឡាញ់</span>{" "}
-                <span className="bg-gradient-to-r from-rose-500 via-red-500 to-pink-500 bg-clip-text text-transparent">
-                  ស៊ាវឈីញ
-                </span>{" "}
-                <span className="inline-block animate-pulse text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.7)]">
-                  ❤️
-                </span>
-              </span>
-            ) : (
-              <span className="inline-flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-                <span>Veasna Loves</span>{" "}
-                <span className="bg-gradient-to-r from-rose-500 via-red-500 to-pink-500 bg-clip-text text-transparent">
-                  Seav Chhing
-                </span>{" "}
-                <span className="inline-block animate-pulse text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.7)]">
-                  ❤️
-                </span>
-              </span>
-            )}
-          </h1>
-
           <p className="mx-auto max-w-2xl text-base sm:text-xl text-gray-600 dark:text-gray-300 leading-relaxed font-normal">
             {language === "KH"
               ? "ស្វែងរកទីតាំងរោងភាពយន្ត Major Cineplex, Legend Cinema និង Prime Cineplex នៅភ្នំពេញ សៀមរាប និងព្រះសីហនុ ជាមួយប្រព័ន្ធ IMAX, ScreenX & 4DX។"

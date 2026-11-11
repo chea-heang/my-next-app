@@ -4,6 +4,8 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { mockBlogPosts } from "@/lib/data";
 import { BlogPost } from "@/types";
+import ArticleSkeleton from "@/components/skeletons/ArticleSkeleton";
+import { useToast } from "@/hooks/useToast";
 
 export default function BlogPostDetailPage({
   params,
@@ -11,6 +13,7 @@ export default function BlogPostDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const resolvedParams = use(params);
+  const { toast } = useToast();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [comments, setComments] = useState<
     { id: string; name: string; text: string; time: string }[]
@@ -28,8 +31,28 @@ export default function BlogPostDetailPage({
     const found = mockBlogPosts.find((p) => p.slug === resolvedParams.slug);
     if (found) {
       setPost(found);
-    } else if (mockBlogPosts.length > 0) {
-      setPost(mockBlogPosts[0]);
+    } else {
+      fetch("/api/posts")
+        .then((r) => r.json())
+        .then((json) => {
+          if (json.success && Array.isArray(json.data)) {
+            const dynamicFound = json.data.find(
+              (p: BlogPost) => p.slug === resolvedParams.slug
+            );
+            if (dynamicFound) {
+              setPost(dynamicFound);
+              return;
+            }
+          }
+          if (mockBlogPosts.length > 0) {
+            setPost(mockBlogPosts[0]);
+          }
+        })
+        .catch(() => {
+          if (mockBlogPosts.length > 0) {
+            setPost(mockBlogPosts[0]);
+          }
+        });
     }
   }, [resolvedParams.slug]);
 
@@ -46,14 +69,11 @@ export default function BlogPostDetailPage({
       },
     ]);
     setNewComment("");
+    toast.success("បានបញ្ចេញមតិយោបល់ជោគជ័យ!", "សូមអរគុណសម្រាប់ការចែករំលែកមតិរបស់អ្នក។");
   };
 
   if (!post) {
-    return (
-      <div className="py-20 text-center text-sm text-gray-500">
-        កំពុងផ្ទុកអត្ថបទ...
-      </div>
-    );
+    return <ArticleSkeleton />;
   }
 
   return (

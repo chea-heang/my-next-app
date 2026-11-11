@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { bookingsApi } from "@/lib/api/bookings";
+import { useToast } from "@/hooks/useToast";
 
 export interface BookingMovieData {
   id: number;
@@ -54,6 +56,7 @@ export default function BookingModal({
   defaultCinema,
 }: BookingModalProps) {
   const { user, openLoginModal } = useAuth();
+  const { toast } = useToast();
   const [step, setStep] = useState<"details" | "payment" | "success">("details");
   const [selectedCinema, setSelectedCinema] = useState<string>(
     defaultCinema || cinemaOptions[0]
@@ -104,7 +107,7 @@ export default function BookingModal({
       setSelectedSeats(selectedSeats.filter((s) => s !== seatId));
     } else {
       if (selectedSeats.length >= 8) {
-        alert("អាចជ្រើសរើសបានអតិបរមា ៨ កៅអី!");
+        toast.warning("កម្រិតកៅអី", "អាចជ្រើសរើសបានអតិបរមា ៨ កៅអី!");
         return;
       }
       setSelectedSeats([...selectedSeats, seatId]);
@@ -122,11 +125,11 @@ export default function BookingModal({
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedSeats.length === 0) {
-      alert("សូមជ្រើសរើសកៅអីយ៉ាងហោចណាស់ ១!");
+      toast.warning("សូមជ្រើសរើសកៅអី", "សូមជ្រើសរើសកៅអីយ៉ាងហោចណាស់ ១!");
       return;
     }
     if (!customerPhone.trim()) {
-      alert("សូមបញ្ចូលលេខទូរស័ព្ទដើម្បីទទួលសំបុត្រ!");
+      toast.warning("សូមបញ្ចូលលេខទូរស័ព្ទ", "សូមបញ្ចូលលេខទូរស័ព្ទដើម្បីទទួលសំបុត្រ!");
       return;
     }
     setStep("payment");
@@ -140,12 +143,10 @@ export default function BookingModal({
       setBookingRef(ref);
       setStep("success");
 
-      // Save ticket to API
+      // Save ticket to API via bookingsApi
       try {
-        fetch("/api/bookings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        bookingsApi
+          .createBooking({
             movieTitle: movie.title,
             cinemaName: selectedCinema,
             cinemaBrand: selectedCinema.includes("Major")
@@ -160,8 +161,8 @@ export default function BookingModal({
             format: selectedFormat.name,
             totalPriceUSD: totalPrice,
             totalPriceKHR,
-          }),
-        }).catch(() => {});
+          })
+          .catch(() => {});
       } catch {}
     }, 1200);
   };
@@ -661,7 +662,7 @@ export default function BookingModal({
                   </div>
                 </div>
 
-                <p className="text-[11px] text-gray-50n0 text-center mt-3 font-medium">
+                <p className="text-[11px] text-gray-500 text-center mt-3 font-medium">
                   ស្កេនទូទាត់ ជាមួយគ្រប់កម្មវិធីធនាគារ (Bakong, ABA, ACLEDA, Wing, Canadia...)
                 </p>
               </div>

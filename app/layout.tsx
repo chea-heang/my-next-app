@@ -7,6 +7,8 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import LoginModal from "@/components/LoginModal";
 
+import { ToastProvider } from "@/components/ui/Toast";
+
 export const metadata: Metadata = {
   title: "Veasna | ទីតាំងរោងកុននៅកម្ពុជា",
   description: "Veasna: ស្វែងរកទីតាំងរោងភាពយន្តនៅកម្ពុជា និងកក់សំបុត្រភាពយន្ត Spider-Man",
@@ -23,10 +25,12 @@ export default function RootLayout({
         <LanguageProvider>
           <AuthProvider>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-              <Navbar />
-              <main className="flex-1">{children}</main>
-              <Footer />
-              <LoginModal />
+              <ToastProvider>
+                <Navbar />
+                <main className="flex-1">{children}</main>
+                <Footer />
+                <LoginModal />
+              </ToastProvider>
             </ThemeProvider>
           </AuthProvider>
         </LanguageProvider>

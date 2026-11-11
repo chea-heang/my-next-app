@@ -52,3 +52,36 @@ export interface BlogComment {
   content: string;
   createdAt: string;
 }
+
+export interface Movie {
+  id: string;
+  title: string;
+  titleKh?: string;
+  part?: string;
+  year: string;
+  duration?: string;
+  genre: string[];
+  rating: number;
+  price: number;
+  image: string;
+  status: "NOW_SHOWING" | "COMING_SOON" | "ARCHIVED";
+  formats: string[];
+}
+
+export interface AdminStats {
+  totalRevenueUSD: number;
+  totalRevenueKHR: string;
+  totalBookings: number;
+  confirmedBookings: number;
+  activeMovies: number;
+  totalUsers: number;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message?: string;
+  token?: string;
+  refresh_token?: string;
+  user?: User;
+}
+

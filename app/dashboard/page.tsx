@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BookingTicket } from "@/types";
+import { bookingsApi } from "@/lib/api/bookings";
+import DashboardSkeleton from "@/components/skeletons/DashboardSkeleton";
 
 export default function DashboardOverviewPage() {
   const [tickets, setTickets] = useState<BookingTicket[]>([]);
@@ -11,11 +13,8 @@ export default function DashboardOverviewPage() {
   useEffect(() => {
     async function loadTickets() {
       try {
-        const res = await fetch("/api/bookings");
-        const json = await res.json();
-        if (json.success) {
-          setTickets(json.data);
-        }
+        const data = await bookingsApi.getBookings();
+        setTickets(data);
       } catch (e) {
       } finally {
         setLoading(false);
@@ -26,8 +25,12 @@ export default function DashboardOverviewPage() {
 
   const confirmedTickets = tickets.filter((t) => t.status === "CONFIRMED");
 
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       {/* Stats Section */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <div className="rounded-3xl border border-gray-200/80 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">

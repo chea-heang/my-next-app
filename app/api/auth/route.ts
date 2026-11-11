@@ -1,21 +1,26 @@
 import { NextResponse } from "next/server";
 import { mockCurrentUser } from "@/lib/data";
+import { generateMockJwt } from "@/lib/jwt";
+import { User } from "@/types";
 
-// Demo in-memory users store
-interface DemoUser {
-  id: string;
-  name: string;
-  email: string;
-  password?: string; 
-  phone?: string;
-  avatar?: string;
-  role?: string;
-  memberPoints?: number;
+interface DemoUser extends User {
+  password?: string;
 }
 
 const usersDb: DemoUser[] = [
   {
     ...mockCurrentUser,
+    password: "password123",
+  },
+  {
+    id: "usr_admin_999",
+    name: "អ្នកគ្រប់គ្រងប្រព័ន្ធ (Admin Director)",
+    email: "admin@cinemas.kh",
+    phone: "012 999 888",
+    avatar:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+    role: "admin",
+    memberPoints: 9999,
     password: "password123",
   },
 ];
@@ -48,32 +53,41 @@ export async function POST(request: Request) {
         }
 
         const { password: _, ...userSafe } = existingUser;
+        const token = generateMockJwt(userSafe);
+
         return NextResponse.json({
           success: true,
           message: "ចូលគណនីជោគជ័យ!",
           user: userSafe,
-          token: `token_${Date.now()}_${existingUser.id}`,
+          token,
+          access_token: token,
         });
       }
 
       // If user not in initial mock list, allow flexible demo login
+      const isAdmin = cleanEmail.includes("admin");
       const newUser: DemoUser = {
         id: `usr_${Date.now()}`,
         name: cleanEmail.split("@")[0],
         email: cleanEmail,
         phone: "012 345 678",
-        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
-        role: "user",
-        memberPoints: 100,
+        avatar:
+          "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
+        role: isAdmin ? "admin" : "user",
+        memberPoints: isAdmin ? 5000 : 100,
+        password,
       };
 
-      usersDb.push({ ...newUser, password });
+      usersDb.push(newUser);
+      const { password: _, ...userSafe } = newUser;
+      const token = generateMockJwt(userSafe);
 
       return NextResponse.json({
         success: true,
         message: "ចូលគណនីជោគជ័យ!",
-        user: newUser,
-        token: `token_${Date.now()}_${newUser.id}`,
+        user: userSafe,
+        token,
+        access_token: token,
       });
     }
 
@@ -81,7 +95,11 @@ export async function POST(request: Request) {
     if (action === "register") {
       if (!name || !email || !password) {
         return NextResponse.json(
-          { success: false, message: "សូមបំពេញឈ្មោះ អ៊ីមែល និងលេខសម្ងាត់ឱ្យបានគ្រប់ជ្រុងជ្រោយ!" },
+          {
+            success: false,
+            message:
+              "សូមបំពេញឈ្មោះ អ៊ីមែល និងលេខសម្ងាត់ឱ្យបានគ្រប់ជ្រុងជ្រោយ!",
+          },
           { status: 400 }
         );
       }
@@ -93,29 +111,39 @@ export async function POST(request: Request) {
 
       if (existingUser) {
         return NextResponse.json(
-          { success: false, message: "អ៊ីមែលនេះមានគណនីរួចហើយ! សូមចូលគណនី (Login)។" },
+          {
+            success: false,
+            message: "អ៊ីមែលនេះមានគណនីរួចហើយ! សូមចូលគណនី (Login)។",
+          },
           { status: 400 }
         );
       }
 
+      const isAdmin = cleanEmail.includes("admin");
       const newUser: DemoUser = {
         id: `usr_${Date.now()}`,
         name,
         email: cleanEmail,
         phone: phone || "012 000 000",
-        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
-        role: "user",
+        avatar:
+          "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
+        role: isAdmin ? "admin" : "user",
         memberPoints: 50,
+        password,
       };
 
-      usersDb.push({ ...newUser, password });
+      usersDb.push(newUser);
+      const { password: _, ...userSafe } = newUser;
+      const token = generateMockJwt(userSafe);
 
       return NextResponse.json(
         {
           success: true,
-          message: "ចុះឈ្មោះជោគជ័យ! អ្នកទទួលបាន 50 ពិន្ទុសម្រាប់ការចុះឈ្មោះដំបូង។",
-          user: newUser,
-          token: `token_${Date.now()}_${newUser.id}`,
+          message:
+            "ចុះឈ្មោះជោគជ័យ! អ្នកទទួលបាន 50 ពិន្ទុសម្រាប់ការចុះឈ្មោះដំបូង។",
+          user: userSafe,
+          token,
+          access_token: token,
         },
         { status: 201 }
       );
@@ -132,4 +160,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
