@@ -1,30 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { BookingTicket } from "@/types";
-import { bookingsApi } from "@/lib/api/bookings";
+import { useBookings } from "@/hooks/queries/useBookings";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StaggerList } from "@/components/ui/StaggerList";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 
 export default function MyBookingsPage() {
-  const [tickets, setTickets] = useState<BookingTicket[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: tickets = [], isLoading } = useBookings();
   const [filter, setFilter] = useState<"ALL" | "CONFIRMED" | "USED">("ALL");
-
-  useEffect(() => {
-    async function fetchBookings() {
-      try {
-        const data = await bookingsApi.getBookings();
-        setTickets(data);
-      } catch (e) {
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchBookings();
-  }, []);
 
   const filteredTickets = tickets.filter((ticket) => {
     if (filter === "ALL") return true;

@@ -53,7 +53,7 @@ export function ConfirmDialog({
   const iconBg = {
     danger: "bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400",
     warning: "bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400",
-    info: "bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400  
+    info: "bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400",
     primary: "bg-purple-100 text-purple-600 dark:bg-purple-950/50 dark:text-purple-400",
   }[variant];
 

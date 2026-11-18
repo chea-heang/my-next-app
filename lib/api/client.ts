@@ -155,11 +155,18 @@ class ApiClient {
 
     let response: Response;
     try {
-      response = await fetch(fullUrl, {
-        ...fetchOptions,
-        headers: reqHeaders,
-        body: reqBody,
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      try {
+        response = await fetch(fullUrl, {
+          ...fetchOptions,
+          headers: reqHeaders,
+          body: reqBody,
+          signal: fetchOptions.signal || controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Network request failed";
       // Mark as network error for seamless fallback

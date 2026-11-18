@@ -1,7 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useId } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  loginSchema,
+  registerSchema,
+  LoginFormData,
+  RegisterFormData,
+} from "@/lib/validations/auth.schema";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/useToast";
@@ -16,39 +24,51 @@ export default function LoginModal() {
     modalMode,
     setModalMode,
     login,
-    register,
+    register: registerUser,
     quickLogin,
   } = useAuth();
   const { language: lang } = useLanguage();
 
-  // Form states
-  const [email, setEmail] = useState("veasna.chan@example.com");
-  const [password, setPassword] = useState("password123");
   const [showPassword, setShowPassword] = useState(false);
-
-  // Register specific fields
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  // Validation & status states
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
+  const [isQuickLoggingIn, setIsQuickLoggingIn] = useState(false);
 
-  // Auto-open modal if URL query param has ?login=true & capture callbackUrl
+  const getCallbackUrl = () => {
+    if (typeof window !== "undefined") {
+      return new URLSearchParams(window.location.search).get("callbackUrl");
+    }
+    return null;
+  };
+
+  // Forms
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    mode: "onBlur",
+    defaultValues: {
+      email: "veasna.chan@example.com",
+      password: "password123",
+    },
+  });
+
+  const registerForm = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    mode: "onBlur",
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  // Auto-open modal if URL query param has ?login=true
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (params.get("login") === "true") {
         openLoginModal("login");
-      }
-      const cb = params.get("callbackUrl");
-      if (cb) {
-        setCallbackUrl(cb);
       }
     }
   }, [openLoginModal]);
@@ -64,156 +84,72 @@ export default function LoginModal() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isLoginModalOpen, closeLoginModal]);
 
-  // Real-time Field Validation Helper
-  const validateField = (field: string, value: string): string => {
-    switch (field) {
-      case "email":
-        if (!value.trim()) return "សូមបញ្ចូលអ៊ីមែល (Email is required)";
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          return "ទម្រង់អ៊ីមែលមិនត្រឹមត្រូវ (Invalid email format)";
-        }
-        return "";
-
-      case "password":
-        if (!value) return "សូមបញ្ចូលពាក្យសម្ងាត់ (Password is required)";
-        if (value.length < 6) {
-          return "ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច ៦ តួអក្សរ (Min 6 characters)";
-        }
-        return "";
-
-      case "name":
-        if (modalMode === "register") {
-          if (!value.trim()) return "សូមបញ្ចូលឈ្មោះរបស់អ្នក (Full name required)";
-          if (value.trim().length < 2) {
-            return "ឈ្មោះត្រូវមានយ៉ាងតិច ២ តួអក្សរ";
-          }
-        }
-        return "";
-
-      case "confirmPassword":
-        if (modalMode === "register") {
-          if (!value) return "សូមបញ្ជាក់ពាក្យសម្ងាត់ (Confirm password required)";
-          if (value !== password) {
-            return "ពាក្យសម្ងាត់ផ្ទៀងផ្ទាត់មិនត្រូវគ្នាទេ (Passwords do not match)";
-          }
-        }
-        return "";
-
-      case "phone":
-        if (modalMode === "register" && value.trim()) {
-          const cleaned = value.replace(/[\s-]/g, "");
-          if (!/^\d{8,11}$/.test(cleaned)) {
-            return "លេខទូរស័ព្ទមិនត្រឹមត្រូវ (8-11 digits required)";
-          }
-        }
-        return "";
-
-      default:
-        return "";
-    }
-  };
-
-  const handleBlur = (field: string, val: string) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-    const err = validateField(field, val);
-    setFieldErrors((prev) => ({ ...prev, [field]: err }));
-  };
-
-  const handleChange = (
-    field: string,
-    val: string,
-    setter: (v: string) => void
-  ) => {
-    setter(val);
-    if (serverError) setServerError("");
-    if (touched[field]) {
-      const err = validateField(field, val);
-      setFieldErrors((prev) => ({ ...prev, [field]: err }));
-    }
-  };
-
   const switchMode = (mode: "login" | "register") => {
     setServerError("");
     setSuccessMessage("");
-    setFieldErrors({});
-    setTouched({});
+    loginForm.clearErrors();
+    registerForm.clearErrors();
     setModalMode(mode);
   };
 
   if (!isLoginModalOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onLoginSubmit = async (data: LoginFormData) => {
     setServerError("");
     setSuccessMessage("");
-
-    // Run full form validation
-    const errors: Record<string, string> = {};
-    errors.email = validateField("email", email);
-    errors.password = validateField("password", password);
-
-    if (modalMode === "register") {
-      errors.name = validateField("name", name);
-      errors.confirmPassword = validateField("confirmPassword", confirmPassword);
-      if (phone) errors.phone = validateField("phone", phone);
-    }
-
-    const hasError = Object.values(errors).some((err) => Boolean(err));
-    setFieldErrors(errors);
-    setTouched({
-      email: true,
-      password: true,
-      name: true,
-      confirmPassword: true,
-      phone: true,
-    });
-
-    if (hasError) return;
-
-    setIsSubmitting(true);
-
     try {
-      if (modalMode === "login") {
-        const res = await login(email, password);
-        setIsSubmitting(false);
-
-        if (res.success) {
-          const msg = res.message || "ចូលគណនីជោគជ័យ!";
-          setSuccessMessage(msg);
-          toast.success(msg, `សូមស្វាគមន៍មកកាន់ Veasna Cinema!`);
-          setTimeout(() => {
-            closeLoginModal();
-            if (callbackUrl) {
-              router.push(callbackUrl);
-            }
-          }, 600);
-        } else {
-          const errMsg = res.message || "Email ឬ Password មិនត្រឹមត្រូវ!";
-          setServerError(errMsg);
-          toast.error(errMsg);
-        }
+      const res = await login(data.email, data.password);
+      if (res.success) {
+        const msg = res.message || "ចូលគណនីជោគជ័យ!";
+        setSuccessMessage(msg);
+        toast.success(msg, `សូមស្វាគមន៍មកកាន់ Veasna Cinema!`);
+        setTimeout(() => {
+          closeLoginModal();
+          const cb = getCallbackUrl();
+          if (cb) {
+            router.push(cb);
+          }
+        }, 600);
       } else {
-        const res = await register({ name, email, phone, password });
-        setIsSubmitting(false);
-
-        if (res.success) {
-          const msg = res.message || "ចុះឈ្មោះជោគជ័យ!";
-          setSuccessMessage(msg);
-          toast.success(msg, "គណនីរបស់អ្នកត្រូវបានបង្កើតដោយជោគជ័យ។");
-          setTimeout(() => {
-            closeLoginModal();
-            if (callbackUrl) {
-              router.push(callbackUrl);
-            }
-          }, 600);
-        } else {
-          const errMsg = res.message || "ការចុះឈ្មោះមិនបានសម្រេច!";
-          setServerError(errMsg);
-          toast.error(errMsg);
-        }
+        const errMsg = res.message || "Email ឬ Password មិនត្រឹមត្រូវ!";
+        setServerError(errMsg);
+        toast.error(errMsg);
       }
     } catch (err: unknown) {
-      setIsSubmitting(false);
+      const errMsg =
+        err instanceof Error ? err.message : "មានបញ្ហានៅលើប្រព័ន្ធ សូមព្យាយាមម្តងទៀត";
+      setServerError(errMsg);
+      toast.error(errMsg);
+    }
+  };
+
+  const onRegisterSubmit = async (data: RegisterFormData) => {
+    setServerError("");
+    setSuccessMessage("");
+    try {
+      const res = await registerUser({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        password: data.password,
+      });
+      if (res.success) {
+        const msg = res.message || "ចុះឈ្មោះជោគជ័យ!";
+        setSuccessMessage(msg);
+        toast.success(msg, "គណនីរបស់អ្នកត្រូវបានបង្កើតដោយជោគជ័យ។");
+        setTimeout(() => {
+          closeLoginModal();
+          const cb = getCallbackUrl();
+          if (cb) {
+            router.push(cb);
+          }
+        }, 600);
+      } else {
+        const errMsg = res.message || "ការចុះឈ្មោះមិនបានសម្រេច!";
+        setServerError(errMsg);
+        toast.error(errMsg);
+      }
+    } catch (err: unknown) {
       const errMsg =
         err instanceof Error ? err.message : "មានបញ្ហានៅលើប្រព័ន្ធ សូមព្យាយាមម្តងទៀត";
       setServerError(errMsg);
@@ -222,18 +158,24 @@ export default function LoginModal() {
   };
 
   const handleQuickLogin = async (role: "user" | "admin") => {
-    setIsSubmitting(true);
+    setIsQuickLoggingIn(true);
     setServerError("");
     await quickLogin(role);
-    setIsSubmitting(false);
+    setIsQuickLoggingIn(false);
     toast.info(
       `ចូលគណនី ${role === "admin" ? "Admin Demo" : "User Demo"} ជោគជ័យ!`,
       role === "admin" ? "អ្នកមានសិទ្ធិគ្រប់គ្រងកម្រិត Admin" : "អ្នកបានចូលជាសមាជិកទូទៅ"
     );
-    if (callbackUrl) {
-      router.push(callbackUrl);
+    const cb = getCallbackUrl();
+    if (cb) {
+      router.push(cb);
     }
   };
+
+  const isSubmitting =
+    loginForm.formState.isSubmitting ||
+    registerForm.formState.isSubmitting ||
+    isQuickLoggingIn;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-all animate-fade-in">
@@ -333,81 +275,39 @@ export default function LoginModal() {
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3.5" noValidate>
-          {modalMode === "register" && (
-            <>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                  ឈ្មោះពេញ (Full Name) *
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => handleChange("name", e.target.value, setName)}
-                  onBlur={() => handleBlur("name", name)}
-                  placeholder="ឧ. សុខ វាសនា"
-                  className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
-                    fieldErrors.name
-                      ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
-                      : "border-gray-300 bg-gray-50 focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800"
-                  }`}
-                />
-                {fieldErrors.name && (
-                  <p className="text-[11px] font-medium text-red-500">{fieldErrors.name}</p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                  លេខទូរស័ព្ទ (Phone Number)
-                </label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => handleChange("phone", e.target.value, setPhone)}
-                  onBlur={() => handleBlur("phone", phone)}
-                  placeholder="012 345 678"
-                  className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
-                    fieldErrors.phone
-                      ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
-                      : "border-gray-300 bg-gray-50 focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800"
-                  }`}
-                />
-                {fieldErrors.phone && (
-                  <p className="text-[11px] font-medium text-red-500">{fieldErrors.phone}</p>
-                )}
-              </div>
-            </>
-          )}
-
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-              អ៊ីមែល (Email) *
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => handleChange("email", e.target.value, setEmail)}
-              onBlur={() => handleBlur("email", email)}
-              placeholder="name@example.com"
-              className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
-                fieldErrors.email
-                  ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
-                  : "border-gray-300 bg-gray-50 focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800"
-              }`}
-            />
-            {fieldErrors.email && (
-              <p className="text-[11px] font-medium text-red-500">{fieldErrors.email}</p>
-            )}
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
+        {/* Login Form */}
+        {modalMode === "login" ? (
+          <form
+            onSubmit={loginForm.handleSubmit(onLoginSubmit)}
+            className="mt-4 space-y-3.5"
+            noValidate
+          >
+            <div className="space-y-1">
               <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                ពាក្យសម្ងាត់ (Password) *
+                អ៊ីមែល (Email) *
               </label>
-              {modalMode === "login" && (
+              <input
+                type="email"
+                {...loginForm.register("email")}
+                placeholder="name@example.com"
+                className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
+                  loginForm.formState.errors.email
+                    ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
+                    : "border-gray-300 bg-gray-50 focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800"
+                }`}
+              />
+              {loginForm.formState.errors.email && (
+                <p className="text-[11px] font-medium text-red-500">
+                  {loginForm.formState.errors.email.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                  ពាក្យសម្ងាត់ (Password) *
+                </label>
                 <button
                   type="button"
                   onClick={() =>
@@ -420,84 +320,189 @@ export default function LoginModal() {
                 >
                   {lang === "KH" ? "ភ្លេចលេខសម្ងាត់?" : "Forgot password?"}
                 </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  {...loginForm.register("password")}
+                  placeholder="••••••••"
+                  className={`w-full rounded-xl border px-3.5 py-2.5 pr-10 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
+                    loginForm.formState.errors.password
+                      ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
+                      : "border-gray-300 bg-gray-50 focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs cursor-pointer"
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
+              {loginForm.formState.errors.password && (
+                <p className="text-[11px] font-medium text-red-500">
+                  {loginForm.formState.errors.password.message}
+                </p>
               )}
             </div>
-            <div className="relative">
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full cursor-pointer rounded-xl bg-linear-to-r from-red-600 to-rose-600 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/30 transition hover:opacity-95 active:scale-[0.99] disabled:opacity-50 mt-2 flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  <span>{lang === "KH" ? "កំពុងដំណើរការ..." : "Processing..."}</span>
+                </>
+              ) : lang === "KH" ? (
+                "ចូលគណនី (Sign In)"
+              ) : (
+                "Sign In"
+              )}
+            </button>
+          </form>
+        ) : (
+          /* Register Form */
+          <form
+            onSubmit={registerForm.handleSubmit(onRegisterSubmit)}
+            className="mt-4 space-y-3.5"
+            noValidate
+          >
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                ឈ្មោះពេញ (Full Name) *
+              </label>
               <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => handleChange("password", e.target.value, setPassword)}
-                onBlur={() => handleBlur("password", password)}
-                placeholder="••••••••"
-                className={`w-full rounded-xl border px-3.5 py-2.5 pr-10 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
-                  fieldErrors.password
+                type="text"
+                {...registerForm.register("name")}
+                placeholder="ឧ. សុខ វាសនា"
+                className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
+                  registerForm.formState.errors.name
                     ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
                     : "border-gray-300 bg-gray-50 focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800"
                 }`}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs cursor-pointer"
-              >
-                {showPassword ? "🙈" : "👁️"}
-              </button>
+              {registerForm.formState.errors.name && (
+                <p className="text-[11px] font-medium text-red-500">
+                  {registerForm.formState.errors.name.message}
+                </p>
+              )}
             </div>
-            {fieldErrors.password && (
-              <p className="text-[11px] font-medium text-red-500">{fieldErrors.password}</p>
-            )}
-          </div>
 
-          {modalMode === "register" && (
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                លេខទូរស័ព្ទ (Phone Number)
+              </label>
+              <input
+                type="tel"
+                {...registerForm.register("phone")}
+                placeholder="012 345 678"
+                className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
+                  registerForm.formState.errors.phone
+                    ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
+                    : "border-gray-300 bg-gray-50 focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800"
+                }`}
+              />
+              {registerForm.formState.errors.phone && (
+                <p className="text-[11px] font-medium text-red-500">
+                  {registerForm.formState.errors.phone.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                អ៊ីមែល (Email) *
+              </label>
+              <input
+                type="email"
+                {...registerForm.register("email")}
+                placeholder="name@example.com"
+                className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
+                  registerForm.formState.errors.email
+                    ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
+                    : "border-gray-300 bg-gray-50 focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800"
+                }`}
+              />
+              {registerForm.formState.errors.email && (
+                <p className="text-[11px] font-medium text-red-500">
+                  {registerForm.formState.errors.email.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                ពាក្យសម្ងាត់ (Password) *
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  {...registerForm.register("password")}
+                  placeholder="••••••••"
+                  className={`w-full rounded-xl border px-3.5 py-2.5 pr-10 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
+                    registerForm.formState.errors.password
+                      ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
+                      : "border-gray-300 bg-gray-50 focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs cursor-pointer"
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
+              {registerForm.formState.errors.password && (
+                <p className="text-[11px] font-medium text-red-500">
+                  {registerForm.formState.errors.password.message}
+                </p>
+              )}
+            </div>
+
             <div className="space-y-1">
               <label className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                 បញ្ជាក់ពាក្យសម្ងាត់ (Confirm Password) *
               </label>
               <input
                 type="password"
-                value={confirmPassword}
-                onChange={(e) =>
-                  handleChange("confirmPassword", e.target.value, setConfirmPassword)
-                }
-                onBlur={() => handleBlur("confirmPassword", confirmPassword)}
+                {...registerForm.register("confirmPassword")}
                 placeholder="••••••••"
                 className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
-                  fieldErrors.confirmPassword
+                  registerForm.formState.errors.confirmPassword
                     ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
                     : "border-gray-300 bg-gray-50 focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800"
                 }`}
               />
-              {fieldErrors.confirmPassword && (
+              {registerForm.formState.errors.confirmPassword && (
                 <p className="text-[11px] font-medium text-red-500">
-                  {fieldErrors.confirmPassword}
+                  {registerForm.formState.errors.confirmPassword.message}
                 </p>
               )}
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full cursor-pointer rounded-xl bg-linear-to-r from-red-600 to-rose-600 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/30 transition hover:opacity-95 active:scale-[0.99] disabled:opacity-50 mt-2 flex items-center justify-center gap-2"
-          >
-            {isSubmitting ? (
-              <>
-                <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                <span>{lang === "KH" ? "កំពុងដំណើរការ..." : "Processing..."}</span>
-              </>
-            ) : modalMode === "login" ? (
-              lang === "KH" ? (
-                "ចូលគណនី (Sign In)"
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full cursor-pointer rounded-xl bg-linear-to-r from-red-600 to-rose-600 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/30 transition hover:opacity-95 active:scale-[0.99] disabled:opacity-50 mt-2 flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  <span>{lang === "KH" ? "កំពុងដំណើរការ..." : "Processing..."}</span>
+                </>
+              ) : lang === "KH" ? (
+                "ចុះឈ្មោះ (Create Account)"
               ) : (
-                "Sign In"
-              )
-            ) : lang === "KH" ? (
-              "ចុះឈ្មោះ (Create Account)"
-            ) : (
-              "Create Account"
-            )}
-          </button>
-        </form>
+                "Create Account"
+              )}
+            </button>
+          </form>
+        )}
 
         {/* Divider */}
         <div className="relative my-4 text-center">

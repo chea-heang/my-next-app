@@ -3,6 +3,9 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, LoginFormData } from "@/lib/validations/auth.schema";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/useToast";
 
@@ -13,14 +16,22 @@ function LoginForm() {
   const { toast } = useToast();
 
   const { login, quickLogin, isAuthenticated } = useAuth();
-  const [email, setEmail] = useState("veasna.chan@example.com");
-  const [password, setPassword] = useState("password123");
   const [showPassword, setShowPassword] = useState(false);
+  const [serverError, setServerError] = useState("");
+  const [isQuickLoggingIn, setIsQuickLoggingIn] = useState(false);
 
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    mode: "onBlur",
+    defaultValues: {
+      email: "veasna.chan@example.com",
+      password: "password123",
+    },
+  });
 
   // If already authenticated, redirect
   useEffect(() => {
@@ -29,56 +40,26 @@ function LoginForm() {
     }
   }, [isAuthenticated, router, callbackUrl]);
 
-  const validateField = (field: string, value: string): string => {
-    if (field === "email") {
-      if (!value.trim()) return "សូមបញ្ចូលអ៊ីមែល";
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-        return "ទម្រង់អ៊ីមែលមិនត្រឹមត្រូវ";
-      }
-    }
-    if (field === "password") {
-      if (!value) return "សូមបញ្ចូលពាក្យសម្ងាត់";
-      if (value.length < 6) return "ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច ៦ តួអក្សរ";
-    }
-    return "";
-  };
-
-  const handleBlur = (field: string, val: string) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-    const err = validateField(field, val);
-    setFieldErrors((prev) => ({ ...prev, [field]: err }));
-  };
-
-  const handleLogin = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-
-    const emailErr = validateField("email", email);
-    const passErr = validateField("password", password);
-    setFieldErrors({ email: emailErr, password: passErr });
-    setTouched({ email: true, password: true });
-
-    if (emailErr || passErr) return;
-
-    setIsLoading(true);
-    setError("");
-
-    const res = await login(email, password);
-    setIsLoading(false);
+  const onSubmit = async (data: LoginFormData) => {
+    setServerError("");
+    const res = await login(data.email, data.password);
 
     if (res.success) {
       router.push(callbackUrl);
     } else {
-      setError(res.message || "Email ឬ Password មិនត្រឹមត្រូវ!");
+      setServerError(res.message || "Email ឬ Password មិនត្រឹមត្រូវ!");
     }
   };
 
   const handleQuickLogin = async (role: "user" | "admin" = "user") => {
-    setIsLoading(true);
-    setError("");
+    setIsQuickLoggingIn(true);
+    setServerError("");
     await quickLogin(role);
-    setIsLoading(false);
+    setIsQuickLoggingIn(false);
     router.push(callbackUrl);
   };
+
+  const loading = isSubmitting || isQuickLoggingIn;
 
   return (
     <div className="flex min-h-[85vh] items-center justify-center px-4 py-12">
@@ -95,39 +76,29 @@ function LoginForm() {
           </p>
         </div>
 
-        {error && (
+        {serverError && (
           <div className="rounded-xl border border-red-500/20 bg-red-50 p-3.5 text-center text-sm font-medium text-red-600 dark:bg-red-950/40 dark:text-red-400 animate-shake">
-            ⚠️ {error}
+            ⚠️ {serverError}
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
               អ៊ីមែល (Email) *
             </label>
             <input
               type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (touched.email) {
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    email: validateField("email", e.target.value),
-                  }));
-                }
-              }}
-              onBlur={() => handleBlur("email", email)}
+              {...register("email")}
               placeholder="name@example.com"
               className={`w-full rounded-xl border px-4 py-3 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
-                fieldErrors.email
+                errors.email
                   ? "border-red-500 bg-red-50/50"
                   : "border-gray-300 bg-gray-50 focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800"
               }`}
             />
-            {fieldErrors.email && (
-              <p className="text-xs text-red-500">{fieldErrors.email}</p>
+            {errors.email && (
+              <p className="text-xs text-red-500">{errors.email.message}</p>
             )}
           </div>
 
@@ -152,20 +123,10 @@ function LoginForm() {
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (touched.password) {
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      password: validateField("password", e.target.value),
-                    }));
-                  }
-                }}
-                onBlur={() => handleBlur("password", password)}
+                {...register("password")}
                 placeholder="••••••••"
                 className={`w-full rounded-xl border px-4 py-3 pr-10 text-sm text-gray-900 outline-none transition dark:text-white dark:focus:bg-gray-900 ${
-                  fieldErrors.password
+                  errors.password
                     ? "border-red-500 bg-red-50/50"
                     : "border-gray-300 bg-gray-50 focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800"
                 }`}
@@ -178,17 +139,17 @@ function LoginForm() {
                 {showPassword ? "🙈" : "👁️"}
               </button>
             </div>
-            {fieldErrors.password && (
-              <p className="text-xs text-red-500">{fieldErrors.password}</p>
+            {errors.password && (
+              <p className="text-xs text-red-500">{errors.password.message}</p>
             )}
           </div>
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={loading}
             className="w-full cursor-pointer rounded-xl bg-linear-to-r from-red-600 to-rose-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-600/30 transition hover:opacity-95 active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
           >
-            {isLoading ? (
+            {loading ? (
               <>
                 <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
                 <span>កំពុងចូល...</span>
@@ -201,7 +162,7 @@ function LoginForm() {
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button
               type="button"
-              disabled={isLoading}
+              disabled={loading}
               onClick={() => handleQuickLogin("user")}
               className="cursor-pointer rounded-xl border border-red-500/30 bg-red-50/60 py-2.5 px-2 text-xs font-bold text-red-600 transition hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-900/50"
             >
@@ -209,7 +170,7 @@ function LoginForm() {
             </button>
             <button
               type="button"
-              disabled={isLoading}
+              disabled={loading}
               onClick={() => handleQuickLogin("admin")}
               className="cursor-pointer rounded-xl border border-purple-500/30 bg-purple-50/60 py-2.5 px-2 text-xs font-bold text-purple-700 transition hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-300 dark:hover:bg-purple-900/50"
             >
