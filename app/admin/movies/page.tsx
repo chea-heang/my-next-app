@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Movie } from "@/types";
-import { adminApi } from "@/lib/api/admin";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { movieFormSchema, MovieFormData, MovieFormInput } from "@/lib/validations/movie.schema";
+import { useMovies, useCreateMovie, useDeleteMovie } from "@/hooks/queries/useMovies";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -11,99 +14,72 @@ import { useToast } from "@/hooks/useToast";
 
 export default function AdminMoviesPage() {
   const { toast } = useToast();
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // React Query hooks
+  const { data: movies = [], isLoading } = useMovies();
+  const createMovieMutation = useCreateMovie();
+  const deleteMovieMutation = useDeleteMovie();
 
   // Add Movie Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [title, setTitle] = useState("");
-  const [year, setYear] = useState("2026");
-  const [price, setPrice] = useState("5.00");
-  const [status, setStatus] = useState<"NOW_SHOWING" | "COMING_SOON">("NOW_SHOWING");
-  const [image, setImage] = useState(
-    "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80"
-  );
 
   // Confirm delete dialog state
   const [movieToDelete, setMovieToDelete] = useState<Movie | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    async function fetchMovies() {
-      try {
-        const data = await adminApi.getMovies();
-        setMovies(data);
-      } catch (err) {
-        toast.error("មិនអាចផ្ទុកបញ្ជីភាពយន្តបានទេ!");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchMovies();
-  }, []);
+  // React Hook Form + Zod
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<MovieFormInput, any, MovieFormData>({
+    resolver: zodResolver(movieFormSchema),
+    mode: "onBlur",
+    defaultValues: {
+      title: "",
+      year: "2026",
+      price: 5.0,
+      image:
+        "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80",
+      status: "NOW_SHOWING",
+      genre: ["Action", "Sci-Fi"],
+      rating: 9.0,
+      formats: ["2D Standard", "IMAX Laser 3D"],
+    },
+  });
 
-  const handleAddMovie = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError("");
-
-    if (!title.trim()) {
-      setFormError("សូមបញ្ចូលចំណងជើងរឿង!");
-      return;
-    }
-    const parsedPrice = parseFloat(price);
-    if (isNaN(parsedPrice) || parsedPrice <= 0) {
-      setFormError("សូមបញ្ចូលតម្លៃសំបុត្រត្រឹមត្រូវ!");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const newMovie = await adminApi.addMovie({
-        title: title.trim(),
-        year,
-        price: parsedPrice,
-        image,
-        genre: ["Action", "Sci-Fi"],
-        rating: 9.0,
-        status,
-        formats: ["2D Standard", "IMAX Laser 3D"],
-      });
-
-      setMovies((prev) => [newMovie, ...prev]);
-      setIsModalOpen(false);
-      setTitle("");
-      setFormError("");
-      toast.success(
-        "បានបន្ថែមភាពយន្តថ្មី!",
-        `ភាពយន្ត "${newMovie.title}" ត្រូវបានបន្ថែមទៅក្នុងប្រព័ន្ធ។`
-      );
-    } catch {
-      setFormError("ការបន្ថែមភាពយន្តបរាជ័យ!");
-      toast.error("ការបន្ថែមភាពយន្តបរាជ័យ!");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const onAddMovie = (data: MovieFormData) => {
+    createMovieMutation.mutate(data, {
+      onSuccess: (newMovie) => {
+        setIsModalOpen(false);
+        reset();
+        toast.success(
+          "បានបន្ថែមភាពយន្តថ្មី!",
+          `ភាពយន្ត "${newMovie.title}" ត្រូវបានបន្ថែមទៅក្នុងប្រព័ន្ធ។`
+        );
+      },
+      onError: () => {
+        toast.error("ការបន្ថែមភាពយន្តបរាជ័យ!");
+      },
+    });
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (!movieToDelete) return;
-    setIsDeleting(true);
-    try {
-      await adminApi.deleteMovie(movieToDelete.id);
-      setMovies((prev) => prev.filter((m) => m.id !== movieToDelete.id));
-      toast.success(
-        "បានលុបភាពយន្ត!",
-        `បានលុបភាពយន្ត "${movieToDelete.title}" ដោយជោគជ័យ។`
-      );
-    } catch {
-      toast.error("មិនអាចលុបភាពយន្តនេះបានទេ!");
-    } finally {
-      setIsDeleting(false);
-      setMovieToDelete(null);
-    }
+    deleteMovieMutation.mutate(movieToDelete.id, {
+      onSuccess: () => {
+        toast.success(
+          "បានលុបភាពយន្ត!",
+          `បានលុបភាពយន្ត "${movieToDelete.title}" ដោយជោគជ័យ។`
+        );
+        setMovieToDelete(null);
+      },
+      onError: () => {
+        toast.error("មិនអាចលុបភាពយន្តនេះបានទេ!");
+        setMovieToDelete(null);
+      },
+    });
   };
 
   const filteredMovies = movies.filter(
@@ -111,6 +87,8 @@ export default function AdminMoviesPage() {
       m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (m.titleKh && m.titleKh.includes(searchTerm))
   );
+
+  const isSaving = isSubmitting || createMovieMutation.isPending;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -134,7 +112,10 @@ export default function AdminMoviesPage() {
 
         <button
           type="button"
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            reset();
+            setIsModalOpen(true);
+          }}
           className="cursor-pointer self-start sm:self-auto rounded-2xl bg-linear-to-r from-purple-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-purple-600/30 hover:opacity-95 transition"
         >
           + បន្ថែមភាពយន្តថ្មី
@@ -231,76 +212,104 @@ export default function AdminMoviesPage() {
         description="សូមបំពេញព័ត៌មានខាងក្រោមដើម្បីដាក់បញ្ចូលភាពយន្តថ្មីទៅក្នុងកាតាឡុក"
         size="md"
       >
-        {formError && (
-          <div className="mb-4 rounded-xl border border-red-500/20 bg-red-50 p-3 text-center text-xs font-bold text-red-600 dark:bg-red-950/40 dark:text-red-400">
-            ⚠️ {formError}
-          </div>
-        )}
-
-        <form onSubmit={handleAddMovie} className="space-y-4">
+        <form onSubmit={handleSubmit(onAddMovie)} className="space-y-4" noValidate>
           <div>
             <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
               ចំណងជើងរឿង *
             </label>
             <input
               type="text"
-              required
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                if (formError) setFormError("");
-              }}
+              {...register("title")}
               placeholder="Spider-Man: ..."
-              className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              className={`w-full rounded-xl border px-3.5 py-2 text-sm text-gray-900 dark:text-white ${
+                errors.title
+                  ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
+                  : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
+              }`}
             />
+            {errors.title && (
+              <p className="mt-1 text-xs text-red-500">{errors.title.message}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                ឆ្នាំផលិត
+                ឆ្នាំផលិត (Year) *
               </label>
               <input
                 type="text"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                {...register("year")}
+                className={`w-full rounded-xl border px-3.5 py-2 text-sm text-gray-900 dark:text-white ${
+                  errors.year
+                    ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
+                    : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
+                }`}
               />
+              {errors.year && (
+                <p className="mt-1 text-xs text-red-500">{errors.year.message}</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                តម្លៃ ($)
+                តម្លៃ ($) *
               </label>
               <input
                 type="number"
                 step="0.5"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                {...register("price", { valueAsNumber: true })}
+                className={`w-full rounded-xl border px-3.5 py-2 text-sm text-gray-900 dark:text-white ${
+                  errors.price
+                    ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
+                    : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
+                }`}
               />
+              {errors.price && (
+                <p className="mt-1 text-xs text-red-500">{errors.price.message}</p>
+              )}
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-              ស្ថានភាព
+              រូបភាពតំណាង (Image URL) *
+            </label>
+            <input
+              type="url"
+              {...register("image")}
+              placeholder="https://..."
+              className={`w-full rounded-xl border px-3.5 py-2 text-sm text-gray-900 dark:text-white ${
+                errors.image
+                  ? "border-red-500 bg-red-50/50 dark:border-red-500 dark:bg-red-950/20"
+                  : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
+              }`}
+            />
+            {errors.image && (
+              <p className="mt-1 text-xs text-red-500">{errors.image.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              ស្ថានភាព *
             </label>
             <select
-              value={status}
-              onChange={(e) =>
-                setStatus(e.target.value as "NOW_SHOWING" | "COMING_SOON")
-              }
+              {...register("status")}
               className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
               <option value="NOW_SHOWING">NOW SHOWING</option>
               <option value="COMING_SOON">COMING SOON</option>
+              <option value="ARCHIVED">ARCHIVED</option>
             </select>
+            {errors.status && (
+              <p className="mt-1 text-xs text-red-500">{errors.status.message}</p>
+            )}
           </div>
 
           <div className="pt-2 flex justify-end gap-2">
             <button
               type="button"
-              disabled={isSubmitting}
+              disabled={isSaving}
               onClick={() => setIsModalOpen(false)}
               className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 cursor-pointer"
             >
@@ -308,10 +317,10 @@ export default function AdminMoviesPage() {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSaving}
               className="rounded-xl bg-purple-600 px-5 py-2 text-xs font-bold text-white hover:bg-purple-700 shadow-md shadow-purple-600/30 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
             >
-              {isSubmitting ? (
+              {isSaving ? (
                 <>
                   <span className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
                   <span>កំពុងរក្សាទុក...</span>
@@ -334,7 +343,7 @@ export default function AdminMoviesPage() {
         confirmText="លុបភាពយន្ត (Delete)"
         cancelText="បោះបង់ (Cancel)"
         variant="danger"
-        isLoading={isDeleting}
+        isLoading={deleteMovieMutation.isPending}
       />
     </div>
   );

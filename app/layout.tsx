@@ -6,8 +6,9 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import LoginModal from "@/components/LoginModal";
-
+import MovieChatWidget from "@/components/chat/MovieChatWidget";
 import { ToastProvider } from "@/components/ui/Toast";
+import QueryProvider from "@/components/providers/QueryProvider";
 
 export const metadata: Metadata = {
   title: "Veasna | ទីតាំងរោងកុននៅកម្ពុជា",
@@ -22,20 +23,22 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="flex min-h-screen flex-col bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100 transition-colors duration-200 antialiased">
-        <LanguageProvider>
-          <AuthProvider>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-              <ToastProvider>
-                <Navbar />
-                <main className="flex-1">{children}</main>
-                <Footer />
-                <LoginModal />
-              </ToastProvider>
-            </ThemeProvider>
-          </AuthProvider>
-        </LanguageProvider>
+        <QueryProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+                <ToastProvider>
+                  <Navbar />
+                  <main className="flex-1">{children}</main>
+                  <Footer />
+                  <LoginModal />
+                  <MovieChatWidget />
+                </ToastProvider>
+              </ThemeProvider>
+            </AuthProvider>
+          </LanguageProvider>
+        </QueryProvider>
       </body>
     </html>
   );
 }
-

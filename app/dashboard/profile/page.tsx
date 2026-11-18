@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { profileSchema, ProfileFormData } from "@/lib/validations/profile.schema";
 import { useAuth } from "@/contexts/AuthContext";
 import { mockCurrentUser } from "@/lib/data";
 import { useToast } from "@/hooks/useToast";
@@ -10,43 +13,40 @@ export default function ProfilePage() {
   const { user, updateUserProfile } = useAuth();
   const currentUser = user || mockCurrentUser;
 
-  const [name, setName] = useState(currentUser.name);
-  const [phone, setPhone] = useState(currentUser.phone || "");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
   const [serverError, setServerError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
+    mode: "onBlur",
+    defaultValues: {
+      name: currentUser.name,
+      phone: currentUser.phone || "",
+    },
+  });
 
   useEffect(() => {
     if (user) {
-      setName(user.name);
-      setPhone(user.phone || "");
+      reset({
+        name: user.name,
+        phone: user.phone || "",
+      });
     }
-  }, [user]);
+  }, [user, reset]);
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const errors: Record<string, string> = {};
-    if (!name.trim()) {
-      errors.name = "សូមបញ្ចូលឈ្មោះរបស់អ្នក";
-    }
-    if (phone.trim()) {
-      const cleanPhone = phone.replace(/[\s-]/g, "");
-      if (!/^\d{8,11}$/.test(cleanPhone)) {
-        errors.phone = "លេខទូរស័ព្ទត្រូវមានពី ៨ ទៅ ១១ ខ្ទង់";
-      }
-    }
-
-    setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) return;
-
-    setIsSubmitting(true);
+  const onUpdate = async (data: ProfileFormData) => {
     setSavedMessage("");
     setServerError("");
 
-    const res = await updateUserProfile({ name, phone });
-    setIsSubmitting(false);
+    const res = await updateUserProfile({
+      name: data.name,
+      phone: data.phone,
+    });
 
     if (res.success) {
       const msg = res.message || "បានរក្សាទុកការផ្លាស់ប្តូរដោយជោគជ័យ!";
@@ -83,7 +83,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <form onSubmit={handleUpdate} className="space-y-6" noValidate>
+        <form onSubmit={handleSubmit(onUpdate)} className="space-y-6" noValidate>
           <div className="flex items-center gap-6">
             <img
               src={currentUser.avatar || mockCurrentUser.avatar}
@@ -122,19 +122,13 @@ export default function ProfilePage() {
               </label>
               <input
                 type="text"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  if (fieldErrors.name) {
-                    setFieldErrors((prev) => ({ ...prev, name: "" }));
-                  }
-                }}
+                {...register("name")}
                 className={`w-full rounded-xl border px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-white ${
-                  fieldErrors.name ? "border-red-500 bg-red-50/50" : "border-gray-300 bg-gray-50"
+                  errors.name ? "border-red-500 bg-red-50/50" : "border-gray-300 bg-gray-50"
                 }`}
               />
-              {fieldErrors.name && (
-                <p className="text-xs text-red-500">{fieldErrors.name}</p>
+              {errors.name && (
+                <p className="text-xs text-red-500">{errors.name.message}</p>
               )}
             </div>
 
@@ -144,20 +138,14 @@ export default function ProfilePage() {
               </label>
               <input
                 type="text"
-                value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value);
-                  if (fieldErrors.phone) {
-                    setFieldErrors((prev) => ({ ...prev, phone: "" }));
-                  }
-                }}
+                {...register("phone")}
                 placeholder="012 345 678"
                 className={`w-full rounded-xl border px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-red-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-white ${
-                  fieldErrors.phone ? "border-red-500 bg-red-50/50" : "border-gray-300 bg-gray-50"
+                  errors.phone ? "border-red-500 bg-red-50/50" : "border-gray-300 bg-gray-50"
                 }`}
               />
-              {fieldErrors.phone && (
-                <p className="text-xs text-red-500">{fieldErrors.phone}</p>
+              {errors.phone && (
+                <p className="text-xs text-red-500">{errors.phone.message}</p>
               )}
             </div>
           </div>
